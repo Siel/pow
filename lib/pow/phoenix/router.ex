@@ -46,10 +46,26 @@ defmodule Pow.Phoenix.Router do
   """
   defmacro pow_routes do
     quote location: :keep do
+      unquote(__MODULE__).validate_scope!(@phoenix_router_scopes)
+
       scope "/", Pow.Phoenix, as: "pow" do
         resources "/session", SessionController, singleton: true, only: [:new, :create, :delete]
         resources "/registration", RegistrationController, singleton: true, except: [:show]
       end
+    end
+  end
+
+  @spec validate_scope!(atom()) :: :ok | no_return
+  def validate_scope!([]), do: :ok
+  def validate_scope!(stack) do
+    modules =
+      stack
+      |> Enum.map(& &1.alias)
+      |> Enum.reject(&is_nil/1)
+
+    case modules do
+      []      -> :ok
+      modules -> raise ArgumentError, "Pow routes should not be defined inside scopes with aliases: #{inspect Module.concat(modules)}"
     end
   end
 
